@@ -1,0 +1,4 @@
+[submodule "data/deepconvchess-dataset"]
+	path = data/deepconvchess-dataset
+	url = https://github.com/billywba/deepconvchess-dataset
+	branch = release/0.1
