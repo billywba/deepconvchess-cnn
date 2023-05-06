@@ -2,6 +2,8 @@ import pathlib
 
 import numpy as np
 
+from sklearn.model_selection import train_test_split
+
 from PIL import Image
 
 import chess
@@ -44,3 +46,16 @@ def load_dataset(dataset_path):
     y = np.array(y)
 
     return X, y
+
+
+def load_train_valid_test_dataset(dataset_dir_path):
+    X_rendered, y_rendered = load_dataset(dataset_dir_path / "render")
+    X_real, y_real = load_dataset(dataset_dir_path / "real")
+    X_test, y_test = load_dataset(dataset_dir_path / "test")
+
+    X = np.concatenate((X_rendered, X_real))
+    y = np.concatenate((y_rendered, y_real))
+
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
+
+    return X_train, y_train, X_val, y_val, X_test, y_test
