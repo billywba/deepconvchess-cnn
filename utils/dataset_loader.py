@@ -70,6 +70,6 @@ def load_train_valid_test_dataset(dataset_dir_path):
     X = np.concatenate((X_rendered, X_real))
     y = np.concatenate((y_rendered, y_real))
 
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.35)
 
     return X_train, y_train, X_val, y_val, X_test, y_test
