@@ -73,6 +73,17 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
                             validation_data=(X_val, y_val),
                             callbacks=[EpochLogCallback()]) # Log statistics to W&B
 
+    
+    # Log test accuracy and loss
+    test_loss, test_accuracy = model.evaluate(X_test, y_test)
+
+    wandb.log(
+        {
+            'test_accuracy': test_accuracy, 
+            'test_loss': test_loss
+        }
+    )
+
     # Finish W&B Run
     wandb.finish()
 
