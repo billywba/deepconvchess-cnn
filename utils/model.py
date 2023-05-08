@@ -48,11 +48,11 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
     config = wandb.config
 
     # Create Model
-    resnet_model = model_architecture_class(input_shape=(160, 160, 3), include_top=False)
-    resnet_model.trainable = False
+    base_model = model_architecture_class(input_shape=(160, 160, 3), include_top=False)
+    base_model.trainable = False
 
     model = Sequential([
-        resnet_model, 
+        base_model, 
         Flatten(), 
         Dense(NUM_CLASSES, activation='softmax', name='output') # Additional output layer for chess pieces
     ], name=config.architecture)
@@ -64,6 +64,9 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
     # Compile Model
     model.compile(optimizer=optimizer, loss=config.loss, metrics=[config.metric])
 
+    # Early stopping callback
+    early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=5)
+
     # Build Model
     with tf.device('/GPU:0'):
         history = model.fit(X_train, 
@@ -71,7 +74,10 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
                             batch_size=config.batch_size,
                             epochs=config.epochs,
                             validation_data=(X_val, y_val),
-                            callbacks=[EpochLogCallback()]) # Log statistics to W&B
+                            callbacks=[
+                                EpochLogCallback(), # Log statistics to W&B
+                                early_stop,
+                           ])
 
     
     # Log test accuracy and loss
