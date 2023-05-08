@@ -18,7 +18,7 @@ def populate_test_folder(dataset_dir_path):
     real_dataset_images_list = os.listdir(dataset_dir_path / "real")
     random.shuffle(real_dataset_images_list)
 
-    files_to_move = real_dataset_images_list[0:int(len(real_dataset_images_list) * 0.25)]
+    files_to_move = real_dataset_images_list[0:int(len(real_dataset_images_list) * 0.35)]
     for file_name in files_to_move:
         shutil.move(dataset_dir_path / "real" / file_name, dataset_dir_path / "test" / file_name)
 
@@ -70,6 +70,6 @@ def load_train_valid_test_dataset(dataset_dir_path):
     X = np.concatenate((X_rendered, X_real))
     y = np.concatenate((y_rendered, y_real))
 
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.35)
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)
 
     return X_train, y_train, X_val, y_val, X_test, y_test
