@@ -1,3 +1,6 @@
+import os
+import random
+import shutil
 import pathlib
 
 import numpy as np
@@ -7,6 +10,17 @@ from sklearn.model_selection import train_test_split
 from PIL import Image
 
 import chess
+
+
+def populate_test_folder(dataset_dir_path):
+    os.makedirs(dataset_dir_path / "test", exist_ok=True)
+
+    real_dataset_images_list = os.listdir(dataset_dir_path / "real")
+    random.shuffle(real_dataset_images_list)
+
+    files_to_move = real_dataset_images_list[0:int(len(real_dataset_images_list) * 0.25)]
+    for file_name in files_to_move:
+        shutil.move(dataset_dir_path / "real" / file_name, dataset_dir_path / "test" / file_name)
 
 
 def load_dataset(dataset_path):
