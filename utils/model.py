@@ -96,7 +96,8 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
             'test_loss': test_loss,
             'precision': precision_score(y_test, y_pred_classes, average='weighted'),
             'recall': recall_score(y_test, y_pred_classes, average='weighted'),
-            'f1': f1_score(y_test, y_pred_classes, average='weighted')
+            'f1': f1_score(y_test, y_pred_classes, average='weighted'),
+            'total_params': model.count_params()
         }
     )
 
