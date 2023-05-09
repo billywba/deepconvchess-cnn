@@ -1,9 +1,13 @@
 import wandb
 
+import numpy as np
+
 import tensorflow as tf
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
+
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 PIECE_LABELS = ['_', 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K']
@@ -36,9 +40,7 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
             "optimizer": "adam",
             "learning_rate": 0.0001,
             "loss": "sparse_categorical_crossentropy",
-            "metric": "accuracy",
             "batch_size": 32,
-            "epochs": 5,
             "train_size": len(X_train),
             "val_size": len(X_val),
             "test_size": len(X_test)
@@ -62,31 +64,39 @@ def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test,
         optimizer = tf.keras.optimizers.Adam(learning_rate=config.learning_rate)
 
     # Compile Model
-    model.compile(optimizer=optimizer, loss=config.loss, metrics=[config.metric])
+    model.compile(optimizer=optimizer, loss=config.loss, metrics=['accuracy'])
 
     # Early stopping callback
-    early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=5)
+    early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=3)
 
     # Build Model
     with tf.device('/GPU:0'):
         history = model.fit(X_train, 
                             y_train,
                             batch_size=config.batch_size,
-                            epochs=config.epochs,
+                            epochs=10,
                             validation_data=(X_val, y_val),
                             callbacks=[
                                 EpochLogCallback(), # Log statistics to W&B
-                                early_stop,
+                                early_stop_callback,
                            ])
 
     
     # Log test accuracy and loss
     test_loss, test_accuracy = model.evaluate(X_test, y_test)
 
+    y_pred = model.predict(X_test)
+    y_pred_classes = np.argmax(y_pred, axis=1)
+
+
     wandb.log(
         {
+            'epochs': len(history.epoch),
             'test_accuracy': test_accuracy, 
-            'test_loss': test_loss
+            'test_loss': test_loss,
+            'precision': precision_score(y_test, y_pred_classes, average='weighted'),
+            'recall': recall_score(y_test, y_pred_classes, average='weighted'),
+            'f1': f1_score(y_test, y_pred_classes, average='weighted')
         }
     )
 
