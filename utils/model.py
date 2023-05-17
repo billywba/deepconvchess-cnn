@@ -32,76 +32,69 @@ class EpochLogCallback(tf.keras.callbacks.Callback):
         )
 
 def test_model(model_architecture_class, X_train, y_train, X_val, y_val, X_test, y_test):
-    # Start W&B Run
-    wandb.init(
-        project="deepconvchess",
-        config={
-            "architecture": model_architecture_class.__name__,
-            "optimizer": "adam",
-            "learning_rate": 0.0001,
-            "loss": "sparse_categorical_crossentropy",
-            "batch_size": 32,
-            "train_size": len(X_train),
-            "val_size": len(X_val),
-            "test_size": len(X_test)
-        }
-    )
-
-    config = wandb.config
-
-    # Create Model
-    base_model = model_architecture_class(input_shape=(160, 160, 3), include_top=False)
-    base_model.trainable = False
-
-    model = Sequential([
-        base_model, 
-        Flatten(), 
-        Dense(NUM_CLASSES, activation='softmax', name='output') # Additional output layer for chess pieces
-    ], name=config.architecture)
-
-    # Create Optimizer
-    if config.optimizer == 'adam':
-        optimizer = tf.keras.optimizers.Adam(learning_rate=config.learning_rate)
-
-    # Compile Model
-    model.compile(optimizer=optimizer, loss=config.loss, metrics=['accuracy'])
-
-    # Early stopping callback
-    early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=3)
-
-    # Build Model
-    with tf.device('/GPU:0'):
-        history = model.fit(X_train, 
-                            y_train,
-                            batch_size=config.batch_size,
-                            epochs=10,
-                            validation_data=(X_val, y_val),
-                            callbacks=[
-                                EpochLogCallback(), # Log statistics to W&B
-                                early_stop_callback,
-                           ])
-
+    config = {
+        "architecture": model_architecture_class.__name__,
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "loss": "sparse_categorical_crossentropy",
+        "batch_size": 32,
+        "train_size": len(X_train),
+        "val_size": len(X_val),
+        "test_size": len(X_test)
+    }
     
-    # Log test accuracy and loss
-    test_loss, test_accuracy = model.evaluate(X_test, y_test)
+    # Start W&B Run
+    with wandb.init(project="deepconvchess", config=config):
+        # Create Model
+        base_model = model_architecture_class(input_shape=(160, 160, 3), include_top=False)
+        base_model.trainable = False
 
-    y_pred = model.predict(X_test)
-    y_pred_classes = np.argmax(y_pred, axis=1)
+        model = Sequential([
+            base_model, 
+            Flatten(), 
+            Dense(NUM_CLASSES, activation='softmax', name='output') # Additional output layer for chess pieces
+        ], name=wandb.config.architecture)
 
+        # Create Optimizer
+        if wandb.config.optimizer == 'adam':
+            optimizer = tf.keras.optimizers.Adam(learning_rate=wandb.config.learning_rate)
 
-    wandb.log(
-        {
-            'epochs': len(history.epoch),
-            'test_accuracy': test_accuracy, 
-            'test_loss': test_loss,
-            'precision': precision_score(y_test, y_pred_classes, average='weighted'),
-            'recall': recall_score(y_test, y_pred_classes, average='weighted'),
-            'f1': f1_score(y_test, y_pred_classes, average='weighted'),
-            'total_params': model.count_params()
-        }
-    )
+        # Compile Model
+        model.compile(optimizer=optimizer, loss=wandb.config.loss, metrics=['accuracy'])
 
-    # Finish W&B Run
-    wandb.finish()
+        # Early stopping callback
+        early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=3)
+
+        # Build Model
+        with tf.device('/GPU:0'):
+            history = model.fit(X_train, 
+                                y_train,
+                                batch_size=wandb.config.batch_size,
+                                epochs=10,
+                                validation_data=(X_val, y_val),
+                                callbacks=[
+                                    EpochLogCallback(), # Log statistics to W&B
+                                    early_stop_callback,
+                            ])
+
+        
+        # Log test accuracy and loss
+        test_loss, test_accuracy = model.evaluate(X_test, y_test)
+
+        y_pred = model.predict(X_test)
+        y_pred_classes = np.argmax(y_pred, axis=1)
+
+        # Log final statistics
+        wandb.log(
+            {
+                'epochs': len(history.epoch),
+                'test_accuracy': test_accuracy, 
+                'test_loss': test_loss,
+                'precision': precision_score(y_test, y_pred_classes, average='weighted'),
+                'recall': recall_score(y_test, y_pred_classes, average='weighted'),
+                'f1': f1_score(y_test, y_pred_classes, average='weighted'),
+                'total_params': model.count_params()
+            }
+        )
 
     return model
